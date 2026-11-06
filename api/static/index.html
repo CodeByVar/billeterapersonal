@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b1020" />
+  <title>Mi Billetera</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icono.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icono.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="estilos.css?v=3" />
+</head>
+<body>
+  <div class="fondo"><span></span><span></span></div>
+
+  <div class="app">
+    <!-- ======================= INICIO ======================= -->
+    <section class="vista activa" id="vista-inicio">
+      <header class="encabezado">
+        <div>
+          <p class="saludo" id="saludo">Hola 👋</p>
+          <h1>Mi Billetera</h1>
+        </div>
+        <button class="btn-icono" id="btn-ocultar" title="Ocultar montos" aria-label="Ocultar montos">👁️</button>
+      </header>
+
+      <div class="tarjeta-saldo">
+        <p class="etiqueta">Saldo total</p>
+        <p class="saldo-grande monto" id="saldo-total">Bs 0,00</p>
+        <p class="etiqueta-mes" id="etiqueta-mes">Este mes</p>
+        <div class="resumen-mes">
+          <div>
+            <span class="flecha sube">↑</span>
+            <div><small>Ingresos</small><strong class="monto" id="ingresos-mes">Bs 0</strong></div>
+          </div>
+          <div>
+            <span class="flecha baja">↓</span>
+            <div><small>Gastos</small><strong class="monto" id="gastos-mes">Bs 0</strong></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="titulo-seccion">
+        <h2>Mis cuentas</h2>
+        <button class="enlace" id="btn-nueva-cuenta">+ Nueva</button>
+      </div>
+      <div class="carrusel" id="lista-cuentas"></div>
+
+      <div class="titulo-seccion">
+        <h2>Evolución del saldo</h2>
+        <button class="enlace" data-ir="graficos">Ver más →</button>
+      </div>
+      <div class="panel-grafana alto-chico" data-panel="6" data-rango="now-90d"></div>
+
+      <div class="titulo-seccion">
+        <h2>Últimos movimientos</h2>
+        <button class="enlace" data-ir="movimientos">Ver todos →</button>
+      </div>
+      <ul class="lista-movs" id="ultimos-movs"></ul>
+    </section>
+
+    <!-- ===================== MOVIMIENTOS ===================== -->
+    <section class="vista" id="vista-movimientos">
+      <header class="encabezado"><h1>Movimientos</h1></header>
+      <input type="search" class="buscador" id="buscador" placeholder="🔍  Buscar por descripción o categoría" />
+      <div class="chips" id="filtro-tipo">
+        <button class="chip activo" data-tipo="">Todos</button>
+        <button class="chip" data-tipo="ingreso">Ingresos</button>
+        <button class="chip" data-tipo="gasto">Gastos</button>
+      </div>
+      <div id="movs-agrupados"></div>
+    </section>
+
+    <!-- ====================== GRÁFICOS ====================== -->
+    <section class="vista" id="vista-graficos">
+      <header class="encabezado">
+        <h1>Estadísticas</h1>
+        <a class="enlace" id="link-grafana" target="_blank" rel="noopener">Grafana ↗</a>
+      </header>
+      <div class="chips" id="filtro-rango">
+        <button class="chip" data-rango="now-30d">30 días</button>
+        <button class="chip activo" data-rango="now-2M/M">3 meses</button>
+        <button class="chip" data-rango="now-5M/M">6 meses</button>
+        <button class="chip" data-rango="now-11M/M">1 año</button>
+      </div>
+      <div class="fila-2">
+        <div class="panel-grafana alto-mini" data-panel="2"></div>
+        <div class="panel-grafana alto-mini" data-panel="3"></div>
+      </div>
+      <div class="panel-grafana" data-panel="4"></div>
+      <div class="panel-grafana alto-grande" data-panel="5"></div>
+      <div class="panel-grafana" data-panel="8"></div>
+      <div class="panel-grafana" data-panel="6"></div>
+      <div class="panel-grafana alto-grande" data-panel="7" data-rango="now/M"></div>
+    </section>
+
+    <!-- ===================== PRESUPUESTO ===================== -->
+    <section class="vista" id="vista-presupuesto">
+      <header class="encabezado">
+        <div>
+          <h1>Presupuesto</h1>
+          <p class="saludo" id="mes-actual"></p>
+        </div>
+      </header>
+      <p class="ayuda">Toca una categoría para definir cuánto quieres gastar como máximo este mes.</p>
+      <ul class="lista-presu" id="lista-presu"></ul>
+    </section>
+  </div>
+
+  <!-- ===================== NAVEGACIÓN ===================== -->
+  <nav class="barra-nav">
+    <button class="activo" data-ir="inicio"><span>🏠</span>Inicio</button>
+    <button data-ir="movimientos"><span>📋</span>Movimientos</button>
+    <button class="fab" id="btn-agregar" aria-label="Nuevo movimiento">+</button>
+    <button data-ir="graficos"><span>📊</span>Gráficos</button>
+    <button data-ir="presupuesto"><span>🎯</span>Presupuesto</button>
+  </nav>
+
+  <!-- ================= MODAL: NUEVO MOVIMIENTO ================= -->
+  <div class="modal" id="modal-mov" hidden>
+    <form class="hoja" id="form-mov" autocomplete="off">
+      <div class="asa"></div>
+      <div class="selector-tipo">
+        <button type="button" class="activo gasto" data-tipo="gasto">Gasto</button>
+        <button type="button" class="ingreso" data-tipo="ingreso">Ingreso</button>
+      </div>
+      <label class="monto-input">
+        <span>Bs</span>
+        <input type="number" id="mov-monto" inputmode="decimal" step="0.01" min="0.01" placeholder="0,00" required />
+      </label>
+      <p class="etiqueta-form">Categoría</p>
+      <div class="grid-cat" id="grid-cat"></div>
+      <div class="fila-2">
+        <label class="campo"><span>Cuenta</span><select id="mov-cuenta" required></select></label>
+        <label class="campo"><span>Fecha</span><input type="date" id="mov-fecha" required /></label>
+      </div>
+      <label class="campo"><span>Descripción</span><input type="text" id="mov-desc" maxlength="120" placeholder="Ej: Almuerzo con amigos" /></label>
+      <p class="error" id="mov-error"></p>
+      <div class="botones">
+        <button type="button" class="btn secundario" data-cerrar>Cancelar</button>
+        <button type="submit" class="btn primario">Guardar</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ================= MODAL: NUEVA CUENTA ================= -->
+  <div class="modal" id="modal-cuenta" hidden>
+    <form class="hoja" id="form-cuenta" autocomplete="off">
+      <div class="asa"></div>
+      <h3>Nueva cuenta</h3>
+      <label class="campo"><span>Nombre</span><input type="text" id="cta-nombre" maxlength="60" placeholder="Ej: Tarjeta BNB" required /></label>
+      <div class="fila-2">
+        <label class="campo"><span>Tipo</span>
+          <select id="cta-tipo">
+            <option value="efectivo">💵 Efectivo</option>
+            <option value="banco">🏦 Banco</option>
+            <option value="tarjeta">💳 Tarjeta</option>
+            <option value="ahorro">🐷 Ahorro</option>
+          </select>
+        </label>
+        <label class="campo"><span>Saldo inicial</span><input type="number" id="cta-saldo" step="0.01" value="0" /></label>
+      </div>
+      <p class="etiqueta-form">Color</p>
+      <div class="colores" id="cta-colores"></div>
+      <p class="error" id="cta-error"></p>
+      <div class="botones">
+        <button type="button" class="btn secundario" data-cerrar>Cancelar</button>
+        <button type="submit" class="btn primario">Crear cuenta</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ================= MODAL: PRESUPUESTO ================= -->
+  <div class="modal" id="modal-presu" hidden>
+    <form class="hoja" id="form-presu" autocomplete="off">
+      <div class="asa"></div>
+      <h3 id="presu-titulo">Presupuesto</h3>
+      <label class="monto-input">
+        <span>Bs</span>
+        <input type="number" id="presu-monto" inputmode="decimal" step="0.01" min="0" placeholder="0,00" required />
+      </label>
+      <p class="ayuda">Pon 0 para quitar el presupuesto de esta categoría.</p>
+      <div class="botones">
+        <button type="button" class="btn secundario" data-cerrar>Cancelar</button>
+        <button type="submit" class="btn primario">Guardar</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ================= MODAL: CONFIRMAR ================= -->
+  <div class="modal" id="modal-confirmar" hidden>
+    <div class="hoja">
+      <div class="asa"></div>
+      <h3 id="conf-titulo">¿Eliminar?</h3>
+      <p class="ayuda" id="conf-texto"></p>
+      <div class="botones">
+        <button type="button" class="btn secundario" data-cerrar>Cancelar</button>
+        <button type="button" class="btn peligro" id="conf-ok">Eliminar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="app.js?v=3"></script>
+</body>
+</html>

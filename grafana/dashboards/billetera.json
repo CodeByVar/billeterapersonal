@@ -1,0 +1,303 @@
+{
+  "uid": "billetera",
+  "title": "Mi Billetera",
+  "tags": ["finanzas"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": false,
+  "graphTooltip": 1,
+  "refresh": "",
+  "time": { "from": "now-90d", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Saldo total",
+      "gridPos": { "x": 0, "y": 0, "w": 8, "h": 5 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "billetera-pg" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "billetera-pg" },
+          "editorMode": "code",
+          "rawQuery": true,
+          "format": "table",
+          "rawSql": "SELECT (SELECT COALESCE(SUM(saldo_inicial), 0) FROM cuentas) + COALESCE(SUM(CASE WHEN tipo = 'ingreso' THEN monto ELSE -monto END), 0) AS \"Saldo\" FROM movimientos"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "prefix:Bs ",
+          "decimals": 2,
+          "color": { "mode": "fixed", "fixedColor": "#00d9f5" }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center"
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Ingresos",
+      "gridPos": { "x": 8, "y": 0, "w": 8, "h": 5 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "billetera-pg" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "billetera-pg" },
+          "editorMode": "code",
+          "rawQuery": true,
+          "format": "table",
+          "rawSql": "SELECT COALESCE(SUM(monto), 0) AS \"Ingresos\" FROM movimientos WHERE tipo = 'ingreso' AND $__timeFilter(fecha)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "prefix:Bs ",
+          "decimals": 0,
+          "color": { "mode": "fixed", "fixedColor": "#00f5a0" }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center"
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Gastos",
+      "gridPos": { "x": 16, "y": 0, "w": 8, "h": 5 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "billetera-pg" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "billetera-pg" },
+          "editorMode": "code",
+          "rawQuery": true,
+          "format": "table",
+          "rawSql": "SELECT COALESCE(SUM(monto), 0) AS \"Gastos\" FROM movimientos WHERE tipo = 'gasto' AND $__timeFilter(fecha)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "prefix:Bs ",
+          "decimals": 0,
+          "color": { "mode": "fixed", "fixedColor": "#ff5ea8" }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center"
+      }
+    },
+    {
+      "id": 4,
+      "type": "barchart",
+      "title": "Ingresos vs Gastos por mes",
+      "gridPos": { "x": 0, "y": 5, "w": 12, "h": 9 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "billetera-pg" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "billetera-pg" },
+          "editorMode": "code",
+          "rawQuery": true,
+          "format": "table",
+          "rawSql": "SELECT to_char(date_trunc('month', fecha), 'MM/YYYY') AS \"Mes\", SUM(monto) FILTER (WHERE tipo = 'ingreso') AS \"Ingresos\", SUM(monto) FILTER (WHERE tipo = 'gasto') AS \"Gastos\" FROM movimientos WHERE $__timeFilter(fecha) GROUP BY date_trunc('month', fecha) ORDER BY date_trunc('month', fecha)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "prefix:Bs ",
+          "decimals": 0,
+          "color": { "mode": "palette-classic" },
+          "custom": { "fillOpacity": 85, "lineWidth": 0, "gradientMode": "hue", "axisSoftMin": 0 }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Ingresos" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#00f5a0" } }] },
+          { "matcher": { "id": "byName", "options": "Gastos" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "#ff5ea8" } }] }
+        ]
+      },
+      "options": {
+        "xField": "Mes",
+        "orientation": "vertical",
+        "barRadius": 0.15,
+        "barWidth": 0.8,
+        "groupWidth": 0.75,
+        "showValue": "never",
+        "stacking": "none",
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "multi", "sort": "none" },
+        "xTickLabelRotation": 0
+      }
+    },
+    {
+      "id": 5,
+      "type": "piechart",
+      "title": "Gastos por categoría",
+      "gridPos": { "x": 12, "y": 5, "w": 12, "h": 9 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "billetera-pg" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "billetera-pg" },
+          "editorMode": "code",
+          "rawQuery": true,
+          "format": "table",
+          "rawSql": "SELECT c.icono || ' ' || c.nombre AS \"Categoría\", SUM(m.monto) AS \"Total\" FROM movimientos m JOIN categorias c ON c.id = m.categoria_id WHERE m.tipo = 'gasto' AND $__timeFilter(m.fecha) GROUP BY c.id ORDER BY 2 DESC"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "prefix:Bs ",
+          "decimals": 0,
+          "color": { "mode": "palette-classic" }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": true },
+        "pieType": "donut",
+        "displayLabels": ["percent"],
+        "legend": { "displayMode": "list", "placement": "right", "showLegend": true, "values": ["value"] },
+        "tooltip": { "mode": "single", "sort": "none" }
+      }
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Evolución del saldo",
+      "gridPos": { "x": 0, "y": 14, "w": 12, "h": 8 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "billetera-pg" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "billetera-pg" },
+          "editorMode": "code",
+          "rawQuery": true,
+          "format": "time_series",
+          "rawSql": "SELECT time, saldo AS \"Saldo\" FROM (SELECT fecha::timestamp AS time, (SELECT COALESCE(SUM(saldo_inicial), 0) FROM cuentas) + SUM(SUM(CASE WHEN tipo = 'ingreso' THEN monto ELSE -monto END)) OVER (ORDER BY fecha) AS saldo FROM movimientos GROUP BY fecha) t WHERE $__timeFilter(time) ORDER BY time"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "prefix:Bs ",
+          "decimals": 0,
+          "color": { "mode": "fixed", "fixedColor": "#00d9f5" },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 3,
+            "fillOpacity": 30,
+            "gradientMode": "opacity",
+            "showPoints": "never",
+            "spanNulls": true
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "showLegend": false, "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "single", "sort": "none" }
+      }
+    },
+    {
+      "id": 7,
+      "type": "bargauge",
+      "title": "Presupuesto del mes usado",
+      "gridPos": { "x": 12, "y": 14, "w": 12, "h": 8 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "billetera-pg" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "billetera-pg" },
+          "editorMode": "code",
+          "rawQuery": true,
+          "format": "table",
+          "rawSql": "SELECT c.icono || ' ' || c.nombre AS \"Categoría\", ROUND(COALESCE(SUM(m.monto), 0) / p.monto * 100, 1) AS \"Usado\" FROM presupuestos p JOIN categorias c ON c.id = p.categoria_id LEFT JOIN movimientos m ON m.categoria_id = p.categoria_id AND m.fecha >= date_trunc('month', CURRENT_DATE) GROUP BY c.id, p.monto ORDER BY 2 DESC"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "decimals": 0,
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "#00f5a0", "value": null },
+              { "color": "#facc15", "value": 80 },
+              { "color": "#ff4d6d", "value": 100 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": true },
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "valueMode": "color",
+        "namePlacement": "top",
+        "showUnfilled": true,
+        "minVizHeight": 16,
+        "maxVizHeight": 22
+      }
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Gasto diario",
+      "gridPos": { "x": 0, "y": 22, "w": 24, "h": 8 },
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "billetera-pg" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "billetera-pg" },
+          "editorMode": "code",
+          "rawQuery": true,
+          "format": "time_series",
+          "rawSql": "SELECT fecha::timestamp AS time, SUM(monto) AS \"Gasto\" FROM movimientos WHERE tipo = 'gasto' AND $__timeFilter(fecha) GROUP BY fecha ORDER BY fecha"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "prefix:Bs ",
+          "decimals": 0,
+          "color": { "mode": "fixed", "fixedColor": "#a855f7" },
+          "custom": {
+            "drawStyle": "bars",
+            "barAlignment": 0,
+            "lineWidth": 1,
+            "fillOpacity": 80,
+            "gradientMode": "opacity",
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "showLegend": false, "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "single", "sort": "none" }
+      }
+    }
+  ]
+}
