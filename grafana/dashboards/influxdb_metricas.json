@@ -1,0 +1,337 @@
+{
+  "uid": "billetera-influx-dashboard",
+  "title": "Reportes y Telemetría Financiera (InfluxDB)",
+  "tags": ["finanzas", "influxdb", "series-temporales"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "graphTooltip": 1,
+  "refresh": "10s",
+  "time": { "from": "now-90d", "to": "now" },
+  "templating": {
+    "list": [
+      {
+        "name": "tipo",
+        "label": "Tipo de Movimiento",
+        "type": "custom",
+        "current": { "selected": true, "text": "Todos", "value": ".*" },
+        "options": [
+          { "selected": true, "text": "Todos", "value": ".*" },
+          { "selected": false, "text": "Ingresos", "value": "ingreso" },
+          { "selected": false, "text": "Gastos", "value": "gasto" }
+        ],
+        "query": "Todos : .*, Ingresos : ingreso, Gastos : gasto",
+        "multi": false,
+        "includeAll": false
+      },
+      {
+        "name": "cuenta",
+        "label": "Cuenta",
+        "type": "custom",
+        "current": { "selected": true, "text": "Todas", "value": ".*" },
+        "options": [
+          { "selected": true, "text": "Todas", "value": ".*" },
+          { "selected": false, "text": "Efectivo", "value": "Efectivo" },
+          { "selected": false, "text": "Banco BNB", "value": "Banco BNB" },
+          { "selected": false, "text": "Tarjeta Visa", "value": "Tarjeta Visa" },
+          { "selected": false, "text": "Ahorro", "value": "Ahorro" }
+        ],
+        "query": "Todas : .*, Efectivo : Efectivo, Banco BNB : Banco BNB, Tarjeta Visa : Tarjeta Visa, Ahorro : Ahorro",
+        "multi": false,
+        "includeAll": false
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Total Movimientos Registrados",
+      "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
+      "datasource": { "type": "influxdb", "uid": "billetera-influx" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "billetera-influx" },
+          "query": "from(bucket: \"billetera_metricas\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"movimientos\")\n  |> filter(fn: (r) => r[\"_field\"] == \"monto\")\n  |> filter(fn: (r) => r[\"tipo\"] =~ /^${tipo}$/)\n  |> filter(fn: (r) => r[\"cuenta\"] =~ /^${cuenta}$/)\n  |> count()\n  |> group()\n  |> sum()"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "locale",
+          "decimals": 0,
+          "color": { "mode": "fixed", "fixedColor": "#00d9f5" }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center"
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Volumen Transaccional Total",
+      "gridPos": { "x": 6, "y": 0, "w": 6, "h": 4 },
+      "datasource": { "type": "influxdb", "uid": "billetera-influx" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "billetera-influx" },
+          "query": "from(bucket: \"billetera_metricas\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"movimientos\")\n  |> filter(fn: (r) => r[\"_field\"] == \"monto\")\n  |> filter(fn: (r) => r[\"tipo\"] =~ /^${tipo}$/)\n  |> filter(fn: (r) => r[\"cuenta\"] =~ /^${cuenta}$/)\n  |> sum()\n  |> group()\n  |> sum()"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "prefix:Bs ",
+          "decimals": 2,
+          "color": { "mode": "fixed", "fixedColor": "#00f5a0" }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center"
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Monto Promedio por Transacción",
+      "gridPos": { "x": 12, "y": 0, "w": 6, "h": 4 },
+      "datasource": { "type": "influxdb", "uid": "billetera-influx" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "billetera-influx" },
+          "query": "from(bucket: \"billetera_metricas\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"movimientos\")\n  |> filter(fn: (r) => r[\"_field\"] == \"monto\")\n  |> filter(fn: (r) => r[\"tipo\"] =~ /^${tipo}$/)\n  |> filter(fn: (r) => r[\"cuenta\"] =~ /^${cuenta}$/)\n  |> mean()\n  |> group()\n  |> mean()"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "prefix:Bs ",
+          "decimals": 2,
+          "color": { "mode": "fixed", "fixedColor": "#f59e0b" }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center"
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Flujo Neto Actual (Ingresos - Gastos)",
+      "gridPos": { "x": 18, "y": 0, "w": 6, "h": 4 },
+      "datasource": { "type": "influxdb", "uid": "billetera-influx" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "billetera-influx" },
+          "query": "from(bucket: \"billetera_metricas\")\n  |> range(start: -30d)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"resumen\")\n  |> filter(fn: (r) => r[\"_field\"] == \"flujo_neto\")\n  |> last()"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "prefix:Bs ",
+          "decimals": 2,
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "#ef4444", "value": null },
+              { "color": "#00f5a0", "value": 0 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "value",
+        "justifyMode": "center"
+      }
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Serie Temporal de Movimientos en InfluxDB",
+      "gridPos": { "x": 0, "y": 4, "w": 16, "h": 8 },
+      "datasource": { "type": "influxdb", "uid": "billetera-influx" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "billetera-influx" },
+          "query": "from(bucket: \"billetera_metricas\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"movimientos\")\n  |> filter(fn: (r) => r[\"_field\"] == \"monto\")\n  |> filter(fn: (r) => r[\"tipo\"] =~ /^${tipo}$/)\n  |> filter(fn: (r) => r[\"cuenta\"] =~ /^${cuenta}$/)\n  |> aggregateWindow(every: 1d, fn: sum, createEmpty: false)\n  |> yield(name: \"monto_diario\")"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "prefix:Bs ",
+          "decimals": 0,
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "drawStyle": "bars",
+            "barAlignment": 0,
+            "lineWidth": 1,
+            "fillOpacity": 80,
+            "gradientMode": "opacity",
+            "showPoints": "auto",
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "showLegend": true, "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      }
+    },
+    {
+      "id": 6,
+      "type": "piechart",
+      "title": "Distribución por Cuenta (InfluxDB Tags)",
+      "gridPos": { "x": 16, "y": 4, "w": 8, "h": 8 },
+      "datasource": { "type": "influxdb", "uid": "billetera-influx" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "billetera-influx" },
+          "query": "from(bucket: \"billetera_metricas\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"movimientos\")\n  |> filter(fn: (r) => r[\"_field\"] == \"monto\")\n  |> filter(fn: (r) => r[\"tipo\"] =~ /^${tipo}$/)\n  |> group(columns: [\"cuenta\"])\n  |> sum()"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "prefix:Bs ",
+          "decimals": 0,
+          "color": { "mode": "palette-classic" }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": true },
+        "pieType": "donut",
+        "displayLabels": ["percent", "name"],
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "tooltip": { "mode": "single", "sort": "desc" }
+      }
+    },
+    {
+      "id": 7,
+      "type": "barchart",
+      "title": "Gastos por Categoría (Reporte Estadístico InfluxDB)",
+      "gridPos": { "x": 0, "y": 12, "w": 12, "h": 8 },
+      "datasource": { "type": "influxdb", "uid": "billetera-influx" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "billetera-influx" },
+          "query": "from(bucket: \"billetera_metricas\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"movimientos\")\n  |> filter(fn: (r) => r[\"_field\"] == \"monto\")\n  |> filter(fn: (r) => r[\"tipo\"] == \"gasto\")\n  |> filter(fn: (r) => r[\"cuenta\"] =~ /^${cuenta}$/)\n  |> group(columns: [\"categoria\"])\n  |> sum()"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "prefix:Bs ",
+          "decimals": 0,
+          "color": { "mode": "palette-classic" },
+          "custom": { "fillOpacity": 85, "lineWidth": 0, "gradientMode": "hue", "axisSoftMin": 0 }
+        },
+        "overrides": []
+      },
+      "options": {
+        "xField": "categoria",
+        "orientation": "horizontal",
+        "barRadius": 0.15,
+        "barWidth": 0.8,
+        "groupWidth": 0.75,
+        "showValue": "always",
+        "stacking": "none",
+        "legend": { "displayMode": "hidden" },
+        "tooltip": { "mode": "single", "sort": "none" }
+      }
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Telemetría de Saldos por Cuenta en el Tiempo",
+      "gridPos": { "x": 12, "y": 12, "w": 12, "h": 8 },
+      "datasource": { "type": "influxdb", "uid": "billetera-influx" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "billetera-influx" },
+          "query": "from(bucket: \"billetera_metricas\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"cuentas\")\n  |> filter(fn: (r) => r[\"_field\"] == \"saldo\")\n  |> filter(fn: (r) => r[\"cuenta\"] =~ /^${cuenta}$/)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "prefix:Bs ",
+          "decimals": 2,
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 3,
+            "fillOpacity": 20,
+            "gradientMode": "opacity",
+            "showPoints": "auto",
+            "spanNulls": true
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "showLegend": true, "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      }
+    },
+    {
+      "id": 9,
+      "type": "table",
+      "title": "Registro Detallado de Eventos (InfluxDB Line Data)",
+      "gridPos": { "x": 0, "y": 20, "w": 24, "h": 7 },
+      "datasource": { "type": "influxdb", "uid": "billetera-influx" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "influxdb", "uid": "billetera-influx" },
+          "query": "from(bucket: \"billetera_metricas\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"movimientos\")\n  |> filter(fn: (r) => r[\"tipo\"] =~ /^${tipo}$/)\n  |> filter(fn: (r) => r[\"cuenta\"] =~ /^${cuenta}$/)\n  |> pivot(rowKey:[\"_time\", \"id\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> keep(columns: [\"_time\", \"tipo\", \"cuenta\", \"categoria\", \"monto\", \"descripcion\"])\n  |> sort(columns: [\"_time\"], desc: true)\n  |> limit(n: 50)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "align": "auto", "displayMode": "auto" }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "monto" },
+            "properties": [
+              { "id": "unit", "value": "prefix:Bs " },
+              { "id": "custom.align", "value": "right" }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "sortBy": [{ "displayName": "_time", "desc": true }]
+      }
+    }
+  ]
+}
+

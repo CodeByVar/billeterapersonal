@@ -14,6 +14,7 @@ const estado = {
   filtroTipo: "",
   rango: "now-2M/M",
   colorCuenta: "#00d9f5",
+  bd: "postgres",
 };
 
 const ICONOS_CUENTA = { efectivo: "💵", banco: "🏦", tarjeta: "💳", ahorro: "🐷" };
@@ -90,7 +91,7 @@ function ir(vista) {
   window.scrollTo({ top: 0, behavior: "smooth" });
   if (vista === "inicio") cargarInicio();
   if (vista === "movimientos") cargarMovimientos();
-  if (vista === "graficos") cargarPaneles("#vista-graficos");
+  if (vista === "graficos") actualizarVistaGraficos();
   if (vista === "presupuesto") cargarPresupuestos();
 }
 document.addEventListener("click", (e) => {
@@ -98,47 +99,80 @@ document.addEventListener("click", (e) => {
   if (b) ir(b.dataset.ir);
 });
 
-// ---------------------------------------------------------------- Grafana
+// ---------------------------------------------------------------- Grafana & InfluxDB
 // Grafana dibuja cada gráfico como imagen PNG en el servidor.
 // Así el celular solo descarga imágenes livianas (no toda la app de Grafana).
 const ZONA = Intl.DateTimeFormat().resolvedOptions().timeZone || "America/La_Paz";
 
-function urlPanel(id, desde, tipo = "d-solo", extra = {}) {
+function urlPanel(id, desde, tipo = "d-solo", extra = {}, dashboard = "billetera") {
   const p = new URLSearchParams({
     orgId: 1, panelId: id, from: desde, to: "now", theme: "dark", tz: ZONA, ...extra,
   });
-  return `${estado.grafana}/${tipo}/billetera/billetera?${p}`;
+  return `${estado.grafana}/${tipo}/${dashboard}/_?${p}`;
 }
 
 function cargarPaneles(contenedor) {
   $$(`${contenedor} .panel-grafana`).forEach((div) => {
     const desde = div.dataset.rango || estado.rango;
-    const ancho = Math.round(div.clientWidth) || 340;
-    const alto = Math.round(div.clientHeight) || 260;
-    div.innerHTML = `<div class="cargando">Cargando gráfico…</div>`;
+    const dashboard = div.dataset.dashboard || "billetera";
+    div.innerHTML = "";
 
-    const img = document.createElement("img");
-    img.alt = "Gráfico de Grafana";
-    img.src = urlPanel(div.dataset.panel, desde, "render/d-solo", {
-      width: ancho, height: alto, scale: Math.min(3, Math.ceil(window.devicePixelRatio || 1)), _: Date.now(),
-    });
-    img.onload = () => div.querySelector(".cargando")?.remove();
-    img.onerror = () => {
-      div.querySelector(".cargando").textContent = "No se pudo cargar el gráfico. Toca para reintentar.";
-      div.onclick = () => { div.onclick = null; cargarPaneles(`#${div.closest(".vista").id}`); };
-    };
-    // Al tocar el gráfico se abre la versión interactiva de Grafana
-    img.addEventListener("click", () => window.open(urlPanel(div.dataset.panel, desde), "_blank"));
-    div.appendChild(img);
+    const iframe = document.createElement("iframe");
+    iframe.src = urlPanel(div.dataset.panel, desde, "d-solo", { refresh: "5s" }, dashboard);
+    iframe.style.width = "100%";
+    iframe.style.height = "100%";
+    iframe.style.border = "none";
+    iframe.loading = "lazy";
+    div.appendChild(iframe);
   });
 }
+
+function actualizarVistaGraficos() {
+  const contPg = $("#contenedor-postgres");
+  const contInf = $("#contenedor-influx");
+  const linkGraf = $("#link-grafana");
+  if (estado.bd === "influx") {
+    if (contPg) contPg.style.display = "none";
+    if (contInf) contInf.style.display = "block";
+    if (linkGraf) linkGraf.href = `${estado.grafana}/d/billetera-influx-dashboard/_`;
+    cargarPaneles("#contenedor-influx");
+  } else {
+    if (contPg) contPg.style.display = "block";
+    if (contInf) contInf.style.display = "none";
+    if (linkGraf) linkGraf.href = `${estado.grafana}/d/billetera/_`;
+    cargarPaneles("#contenedor-postgres");
+  }
+}
+
+$("#selector-bd")?.addEventListener("click", (e) => {
+  const chip = e.target.closest(".chip");
+  if (!chip) return;
+  $$("#selector-bd .chip").forEach((c) => c.classList.toggle("activo", c === chip));
+  estado.bd = chip.dataset.bd;
+  actualizarVistaGraficos();
+});
+
+$("#btn-sync-influx")?.addEventListener("click", async () => {
+  try {
+    toast("⏳ Sincronizando con InfluxDB…");
+    const r = await api("/influx/sincronizar", { method: "POST" });
+    if (r.estado === "exito") {
+      toast(`✅ InfluxDB sincronizado (${r.puntos_sincronizados} puntos)`);
+      if (estado.bd === "influx") cargarPaneles("#contenedor-influx");
+    } else {
+      toast("⚠️ " + (r.detalle || "Error al sincronizar"));
+    }
+  } catch (err) {
+    toast("⚠️ " + err.message);
+  }
+});
 
 $("#filtro-rango").addEventListener("click", (e) => {
   const chip = e.target.closest(".chip");
   if (!chip) return;
   $$("#filtro-rango .chip").forEach((c) => c.classList.toggle("activo", c === chip));
   estado.rango = chip.dataset.rango;
-  cargarPaneles("#vista-graficos");
+  actualizarVistaGraficos();
 });
 
 // ---------------------------------------------------------------- Inicio

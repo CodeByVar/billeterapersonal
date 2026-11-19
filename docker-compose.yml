@@ -1,9 +1,8 @@
 services:
-  # ---------------- Base de datos ----------------
+  # ---------------- Base de datos Relacional (PostgreSQL) ----------------
   db:
     image: postgres:16-alpine
     restart: unless-stopped
-    # Zona horaria para que "hoy" y "este mes" coincidan con tu hora local
     command: ["postgres", "-c", "timezone=${ZONA_HORARIA:-America/La_Paz}"]
     environment:
       POSTGRES_DB: billetera
@@ -17,6 +16,27 @@ services:
       interval: 3s
       retries: 20
 
+  # ---------------- Base de datos de Series de Tiempo (InfluxDB) ----------------
+  influxdb:
+    image: influxdb:2.7-alpine
+    restart: unless-stopped
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: admin
+      DOCKER_INFLUXDB_INIT_PASSWORD: ${INFLUX_PASSWORD:-adminpassword123}
+      DOCKER_INFLUXDB_INIT_ORG: billetera_org
+      DOCKER_INFLUXDB_INIT_BUCKET: billetera_metricas
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ${INFLUX_TOKEN:-billetera-super-secret-token-influxdb-2024}
+    ports:
+      - "8086:8086"   # Web UI de InfluxDB y API HTTP
+    volumes:
+      - datos-influx:/var/lib/influxdb2
+    healthcheck:
+      test: ["CMD", "influx", "ping"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+
   # ---------------- API + app móvil ----------------
   api:
     build: ./api
@@ -24,6 +44,10 @@ services:
     environment:
       DATABASE_URL: postgresql://billetera:${DB_PASSWORD:-billetera_local}@db:5432/billetera
       GRAFANA_INTERNAL_URL: http://grafana:3000   # la app la publica en /grafana/
+      INFLUXDB_URL: http://influxdb:8086
+      INFLUXDB_TOKEN: ${INFLUX_TOKEN:-billetera-super-secret-token-influxdb-2024}
+      INFLUXDB_ORG: billetera_org
+      INFLUXDB_BUCKET: billetera_metricas
     ports:
       - "8000:8000"
     volumes:
@@ -31,25 +55,25 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      influxdb:
+        condition: service_healthy
 
-  # ---------------- Grafana (gráficos) ----------------
+  # ---------------- Grafana (dashboards y gráficos) ----------------
   grafana:
     image: grafana/grafana:11.4.0
     restart: unless-stopped
     environment:
-      # Grafana vive en la ruta /grafana/ de la app (http://<tu-ip>:8000/grafana/)
       GF_SERVER_ROOT_URL: "%(protocol)s://%(domain)s:%(http_port)s/grafana/"
       GF_SERVER_SERVE_FROM_SUB_PATH: "true"
-      GF_LIVE_MAX_CONNECTIONS: "0"              # sin tiempo real (no hace falta)
-      # Grafana dibuja los gráficos como imágenes PNG (livianas para el celular)
+      GF_LIVE_MAX_CONNECTIONS: "0"
       GF_RENDERING_SERVER_URL: http://renderer:8081/render
       GF_RENDERING_CALLBACK_URL: http://grafana:3000/grafana/
       GF_RENDERING_CONCURRENT_RENDER_REQUEST_LIMIT: "10"
       GF_DATE_FORMATS_DEFAULT_TIMEZONE: ${ZONA_HORARIA:-America/La_Paz}
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
-      GF_SECURITY_ALLOW_EMBEDDING: "true"       # permite mostrar los gráficos dentro de la app
-      GF_AUTH_ANONYMOUS_ENABLED: "true"         # se pueden ver sin iniciar sesión (solo lectura)
+      GF_SECURITY_ALLOW_EMBEDDING: "true"
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
       GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
       GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/billetera.json
       GF_USERS_DEFAULT_THEME: dark
@@ -57,7 +81,7 @@ services:
       GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
       GF_NEWS_NEWS_FEED_ENABLED: "false"
     ports:
-      - "127.0.0.1:3000:3000"   # solo accesible desde esta PC; el resto entra por la app
+      - "127.0.0.1:3000:3000"
     volumes:
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
@@ -65,21 +89,20 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      influxdb:
+        condition: service_healthy
 
   # ---------------- Renderizador de imágenes de Grafana ----------------
   renderer:
     image: grafana/grafana-image-renderer:3.11.0
     restart: unless-stopped
     environment:
-      RENDERING_MODE: clustered            # reutiliza el navegador interno: más rápido
+      RENDERING_MODE: clustered
       RENDERING_CLUSTERING_MODE: context
       RENDERING_CLUSTERING_MAX_CONCURRENCY: "8"
       RENDERING_CLUSTERING_TIMEOUT: "60"
 
-  # ---------------- Conexión segura con Grafana Cloud (opcional) ----------------
-  # Crea un túnel de SALIDA hacia tu Grafana Cloud para que pueda leer la base
-  # de datos sin abrir puertos ni publicar nada en internet.
-  # Se activa con:  docker compose --profile cloud up -d
+  # ---------------- Conexión con Grafana Cloud (opcional) ----------------
   pdc:
     image: grafana/pdc-agent:latest
     profiles: ["cloud"]
@@ -97,4 +120,5 @@ services:
 
 volumes:
   datos-db:
+  datos-influx:
   datos-grafana:

@@ -10,7 +10,7 @@
   <link rel="apple-touch-icon" href="icono.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="estilos.css?v=3" />
+  <link rel="stylesheet" href="estilos.css?v=4" />
 </head>
 <body>
   <div class="fondo"><span></span><span></span></div>
@@ -76,24 +76,58 @@
     <!-- ====================== GRÁFICOS ====================== -->
     <section class="vista" id="vista-graficos">
       <header class="encabezado">
-        <h1>Estadísticas</h1>
-        <a class="enlace" id="link-grafana" target="_blank" rel="noopener">Grafana ↗</a>
+        <div>
+          <h1>Estadísticas</h1>
+          <p class="saludo">PostgreSQL & InfluxDB</p>
+        </div>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <button class="btn-sync" id="btn-sync-influx" title="Sincronizar todo a InfluxDB">⚡ Sync Influx</button>
+          <a class="enlace" id="link-grafana" target="_blank" rel="noopener">Grafana ↗</a>
+        </div>
       </header>
+
+      <!-- Selector de Base de Datos -->
+      <div class="chips" id="selector-bd" style="margin-bottom:12px;">
+        <button class="chip activo" data-bd="postgres">🐘 PostgreSQL (Relacional)</button>
+        <button class="chip" data-bd="influx">📈 InfluxDB (Series de Tiempo)</button>
+      </div>
+
       <div class="chips" id="filtro-rango">
         <button class="chip" data-rango="now-30d">30 días</button>
         <button class="chip activo" data-rango="now-2M/M">3 meses</button>
         <button class="chip" data-rango="now-5M/M">6 meses</button>
         <button class="chip" data-rango="now-11M/M">1 año</button>
       </div>
-      <div class="fila-2">
-        <div class="panel-grafana alto-mini" data-panel="2"></div>
-        <div class="panel-grafana alto-mini" data-panel="3"></div>
+
+      <!-- Contenedor PostgreSQL -->
+      <div id="contenedor-postgres">
+        <div class="fila-2">
+          <div class="panel-grafana alto-mini" data-dashboard="billetera" data-panel="2"></div>
+          <div class="panel-grafana alto-mini" data-dashboard="billetera" data-panel="3"></div>
+        </div>
+        <div class="panel-grafana" data-dashboard="billetera" data-panel="4"></div>
+        <div class="panel-grafana alto-grande" data-dashboard="billetera" data-panel="5"></div>
+        <div class="panel-grafana" data-dashboard="billetera" data-panel="8"></div>
+        <div class="panel-grafana" data-dashboard="billetera" data-panel="6"></div>
+        <div class="panel-grafana alto-grande" data-dashboard="billetera" data-panel="7" data-rango="now/M"></div>
       </div>
-      <div class="panel-grafana" data-panel="4"></div>
-      <div class="panel-grafana alto-grande" data-panel="5"></div>
-      <div class="panel-grafana" data-panel="8"></div>
-      <div class="panel-grafana" data-panel="6"></div>
-      <div class="panel-grafana alto-grande" data-panel="7" data-rango="now/M"></div>
+
+      <!-- Contenedor InfluxDB -->
+      <div id="contenedor-influx" style="display: none;">
+        <div class="fila-2">
+          <div class="panel-grafana alto-mini" data-dashboard="billetera-influx-dashboard" data-panel="1"></div>
+          <div class="panel-grafana alto-mini" data-dashboard="billetera-influx-dashboard" data-panel="2"></div>
+        </div>
+        <div class="fila-2">
+          <div class="panel-grafana alto-mini" data-dashboard="billetera-influx-dashboard" data-panel="3"></div>
+          <div class="panel-grafana alto-mini" data-dashboard="billetera-influx-dashboard" data-panel="4"></div>
+        </div>
+        <div class="panel-grafana alto-grande" data-dashboard="billetera-influx-dashboard" data-panel="5"></div>
+        <div class="panel-grafana alto-grande" data-dashboard="billetera-influx-dashboard" data-panel="6"></div>
+        <div class="panel-grafana alto-grande" data-dashboard="billetera-influx-dashboard" data-panel="7"></div>
+        <div class="panel-grafana alto-grande" data-dashboard="billetera-influx-dashboard" data-panel="8"></div>
+        <div class="panel-grafana alto-grande" data-dashboard="billetera-influx-dashboard" data-panel="9"></div>
+      </div>
     </section>
 
     <!-- ===================== PRESUPUESTO ===================== -->
@@ -204,6 +238,6 @@
 
   <div class="toast" id="toast"></div>
 
-  <script src="app.js?v=3"></script>
+  <script src="app.js?v=4"></script>
 </body>
 </html>

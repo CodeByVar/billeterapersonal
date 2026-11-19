@@ -4,14 +4,14 @@ datasources:
   - name: Billetera
     uid: billetera-pg
     type: grafana-postgresql-datasource
-    url: db:5432
-    user: grafana_lector
+    url: ep-dawn-cake-bddgwshv-pooler.c-8.us-east-2.aws.neon.tech:5432
+    user: neondb_owner
     isDefault: true
     editable: false
     jsonData:
-      database: billetera
-      sslmode: disable
+      database: neondb
+      sslmode: require
       postgresVersion: 1600
       timescaledb: false
     secureJsonData:
-      password: grafana_lector
+      password: npg_XjHGgb3DJR7u
